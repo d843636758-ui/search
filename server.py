@@ -1149,12 +1149,15 @@ async def browser_list_controls(
 ) -> list[dict[str, str]]:
 
     """
-    列出当前页面可见按钮、
-    链接和输入框。
+    列出当前页面可见的按钮、链接和输入框。
+
+    额外返回：
+    - href：链接真实地址
+    - role：ARIA role
+    - type：input/button 类型
     """
 
     p = await browser.get()
-
 
     js = """
     (limit) => [
@@ -1182,74 +1185,99 @@ async def browser_list_controls(
       0,
       limit
     )
-    .map(
-      (el, i) => ({
+    .map((el, i) => ({
 
-        index:
-          String(i),
+      index:
+        String(i),
 
-        tag:
-          el.tagName
-          .toLowerCase(),
+      tag:
+        el.tagName
+        .toLowerCase(),
 
-        text:
-          (
-            el.innerText ||
-            el.value ||
-            el.getAttribute('aria-label') ||
-            ''
-          )
-          .trim()
-          .slice(
-            0,
-            160
-          ),
+      text:
+        (
+          el.innerText ||
+          el.value ||
+          el.getAttribute('aria-label') ||
+          ''
+        )
+        .trim()
+        .slice(
+          0,
+          160
+        ),
 
-        placeholder:
-          (
-            el.getAttribute('placeholder') ||
-            ''
-          )
-          .trim()
-          .slice(
-            0,
-            120
-          ),
+      placeholder:
+        (
+          el.getAttribute('placeholder') ||
+          ''
+        )
+        .trim()
+        .slice(
+          0,
+          120
+        ),
 
-        aria:
-          (
-            el.getAttribute('aria-label') ||
-            ''
-          )
-          .trim()
-          .slice(
-            0,
-            120
-          )
+      aria:
+        (
+          el.getAttribute('aria-label') ||
+          ''
+        )
+        .trim()
+        .slice(
+          0,
+          120
+        ),
 
-      }))
-    )
+      href:
+        (
+          el.href ||
+          el.getAttribute('href') ||
+          ''
+        )
+        .trim()
+        .slice(
+          0,
+          800
+        ),
+
+      role:
+        (
+          el.getAttribute('role') ||
+          ''
+        )
+        .trim()
+        .slice(
+          0,
+          80
+        ),
+
+      type:
+        (
+          el.getAttribute('type') ||
+          ''
+        )
+        .trim()
+        .slice(
+          0,
+          80
+        )
+
+    }))
     """
 
-
-    return (
-        await
-        p.evaluate(
-
-            js,
-
-            max(
-                10,
-                min(
-                    limit,
-                    120,
-                ),
-            ),
-
-        )
+    safe_limit = max(
+        10,
+        min(
+            limit,
+            120,
+        ),
     )
 
-
+    return await p.evaluate(
+        js,
+        safe_limit,
+    )
 @mcp.tool
 async def browser_click_text(
     text: str,
